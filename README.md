@@ -1,21 +1,27 @@
-# Digital Wallet Interaction
-![image Alt](https://github.com/AkT-Singh101/meta-eth-avax2/blob/master/frontend.png?raw=true)
+
+# Halloween Candy Exchange
+
+![Halloween Candy](https://your-image-url-here)
 
 ## Overview
-The Digital Wallet Interaction allows users to deposit and withdraw Ether through a smart contract deployed on the Ethereum blockchain. This decentralized application provides a user-friendly interface for interacting with the contract .
+
+The Halloween Candy Exchange is a decentralized application (dApp) that allows users to give and take candies through a smart contract deployed on blockchain. This application provides an engaging and user-friendly interface for interacting with the contract.
 
 ## Features
-- **Deposit Ether**: Users can deposit Ether into the contract.
-- **Withdraw Ether**: Users can withdraw Ether from the contract .
-- **Transaction History**: Users can view their transaction history, including amounts and timestamps.
-- **Real-time Updates**: The application updates the balance and transaction history in real-time.
+
+- **Give Candy**: Users can contribute candies to the contract.
+- **Take Candy**: Users can withdraw candies from the contract.
+- **Candy Statistics**: Users can view statistics such as total candies given and taken.
+- **Real-time Updates**: The application updates candy counts and statistics in real-time.
 
 ## Smart Contract
-- **checkBalance**: Returns the current balance of the contract.
-- **addFunds**: Allows the admin to add Ether to the contract.
-- **removeFunds**: Allows the admin to remove Ether from the contract.
-- **transferOwnership**: Allows the admin to transfer ownership of the contract to a new address.
 
+- **getTotalCandies**: Returns the current total number of candies in the contract.
+- **getTotalCandiesGiven**: Returns the total number of candies given by users.
+- **getTotalCandiesTaken**: Returns the total number of candies taken by users.
+- **giveCandy**: Allows users to add candies to the contract.
+- **takeCandy**: Allows users to remove candies from the contract.
+- 
 ## Getting Started
 **Installation/Running this project**
 After cloning the github, you will want to do the following to get the code running on your computer.
