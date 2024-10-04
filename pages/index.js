@@ -1,28 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import Web3Modal from 'web3modal';
 
 const contractABI = [
-  "function getBalance() public view returns (uint256)",
-  "function getTransactionCount() public view returns (uint256)",
-  "function getTransaction(uint index) public view returns (uint256, string memory, uint256)",
-  "function deposit() public payable",
-  "function withdraw(uint256 _withdrawAmount) public",
-  "event Deposit(uint256 amount)",
-  "event Withdraw(uint256 amount)"
+  "function checkBalance() external view returns (uint256)",
+  "function addFunds() external payable",
+  "function removeFunds(uint256 amount) external",
+  "event FundsAdded(address indexed from, uint256 value)",
+  "event FundsRemoved(address indexed to, uint256 value)"
 ];
 
 const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Update with the actual contract address
 
-export default function AssessmentContractInteraction() {
+export default function DigitalWalletInteraction() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
   const [address, setAddress] = useState("");
   const [balance, setBalance] = useState("0");
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [addAmount, setAddAmount] = useState("");
+  const [removeAmount, setRemoveAmount] = useState("");
   const [transactions, setTransactions] = useState([]);
+
+  const updateBalance = useCallback(async () => {
+    if (contract) {
+      try {
+        const balance = await contract.checkBalance();
+        setBalance(ethers.utils.formatEther(balance));
+      } catch (error) {
+        console.error("Failed to fetch balance", error);
+        alert("Failed to fetch balance: " + error.message);
+      }
+    }
+  }, [contract]);
 
   useEffect(() => {
     const init = async () => {
@@ -41,21 +51,18 @@ export default function AssessmentContractInteraction() {
         setAddress(address);
 
         await updateBalance();
-        await updateTransactionHistory();
 
         // Event listeners
-        contract.on("Deposit", (amount) => {
-          console.log(`Deposit event: ${ethers.utils.formatEther(amount)} ETH`);
-          alert(`Deposited ${ethers.utils.formatEther(amount)} ETH`);
+        contract.on("FundsAdded", (from, value) => {
+          console.log(`Funds added: ${ethers.utils.formatEther(value)} ETH from ${from}`);
           updateBalance();
-          updateTransactionHistory();
+          updateTransactions(from, value, "Add");
         });
 
-        contract.on("Withdraw", (amount) => {
-          console.log(`Withdraw event: ${ethers.utils.formatEther(amount)} ETH`);
-          alert(`Withdrawn ${ethers.utils.formatEther(amount)} ETH`);
+        contract.on("FundsRemoved", (to, value) => {
+          console.log(`Funds removed: ${ethers.utils.formatEther(value)} ETH to ${to}`);
           updateBalance();
-          updateTransactionHistory();
+          updateTransactions(to, value, "Remove");
         });
 
         return () => {
@@ -68,78 +75,42 @@ export default function AssessmentContractInteraction() {
     };
 
     init();
-  }, []);
+  }, [updateBalance]);
 
-  const updateBalance = async () => {
-    if (contract) {
-      try {
-        const balance = await contract.getBalance();
-        console.log("Contract balance:", ethers.utils.formatEther(balance)); // Debugging balance
-        setBalance(ethers.utils.formatEther(balance));
-      } catch (error) {
-        console.error("Failed to fetch balance", error);
-        alert("Failed to fetch balance: " + error.message);
-      }
-    }
+  const updateTransactions = (address, value, type) => {
+    const newTx = {
+      address,
+      amount: ethers.utils.formatEther(value),
+      type,
+      timestamp: new Date().toLocaleString()
+    };
+    setTransactions(prevTx => [newTx, ...prevTx]);
   };
 
-  const updateTransactionHistory = async () => {
-    if (contract) {
+  const handleAddFunds = async () => {
+    if (contract && addAmount) {
       try {
-        const count = await contract.getTransactionCount();
-        const txs = [];
-        for (let i = 0; i < count.toNumber(); i++) {
-          const [amount, type, timestamp] = await contract.getTransaction(i);
-          txs.push({
-            amount: ethers.utils.formatEther(amount),
-            type,
-            timestamp: new Date(timestamp.toNumber() * 1000).toLocaleString()
-          });
-        }
-        setTransactions(txs);
-      } catch (error) {
-        console.error("Failed to fetch transactions", error);
-        alert("Failed to fetch transaction history: " + error.message);
-      }
-    }
-  };
-
-  const handleDeposit = async () => {
-    if (contract && depositAmount) {
-      try {
-        console.log("Initiating deposit of", depositAmount);
-        const tx = await contract.deposit({ value: ethers.utils.parseEther(depositAmount) });
+        const tx = await contract.addFunds({ value: ethers.utils.parseEther(addAmount) });
         await tx.wait();
-        console.log("Deposit successful!", tx);
-        setDepositAmount(""); // Clear the input field
-        await updateBalance(); // Update balance after deposit
-        await updateTransactionHistory(); // Update transaction history
+        setAddAmount("");
+        await updateBalance();
       } catch (error) {
-        console.error("Deposit failed", error);
-        alert("Deposit failed: " + error.message);
+        console.error("Add funds failed", error);
+        alert("Add funds failed: " + error.message);
       }
     }
   };
 
-  const handleWithdraw = async () => {
-    if (contract && withdrawAmount) {
+  const handleRemoveFunds = async () => {
+    if (contract && removeAmount) {
       try {
-        const currentBalance = await contract.getBalance();
-        const withdrawAmountWei = ethers.utils.parseEther(withdrawAmount);
-        if (withdrawAmountWei.gt(currentBalance)) {
-          alert("Insufficient funds for withdrawal");
-          return;
-        }
-        console.log("Initiating withdrawal of", withdrawAmount);
-        const tx = await contract.withdraw(withdrawAmountWei);
+        const tx = await contract.removeFunds(ethers.utils.parseEther(removeAmount));
         await tx.wait();
-        console.log("Withdrawal successful!", tx);
-        setWithdrawAmount(""); // Clear the input field
-        await updateBalance(); // Update balance after withdrawal
-        await updateTransactionHistory(); // Update transaction history
+        setRemoveAmount("");
+        await updateBalance();
       } catch (error) {
-        console.error("Withdrawal failed", error);
-        alert("Withdrawal failed: " + error.message);
+        console.error("Remove funds failed", error);
+        alert("Remove funds failed: " + error.message);
       }
     }
   };
@@ -157,7 +128,7 @@ export default function AssessmentContractInteraction() {
         marginBottom: '2rem',
         textAlign: 'center',
         color: '#1E40AF'
-      }}>Assessment Contract Interaction</h1>
+      }}>Digital Wallet Interaction</h1>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{
           marginBottom: '2rem',
@@ -168,7 +139,7 @@ export default function AssessmentContractInteraction() {
         }}>
           <h2 style={{ color: '#2563EB', marginBottom: '1rem', fontSize: '1.5rem' }}>Wallet Information</h2>
           <p style={{ marginBottom: '0.5rem' }}><span style={{ fontWeight: 'bold' }}>Address:</span> {address}</p>
-          <p><span style={{ fontWeight: 'bold' }}>Contract Balance:</span> {balance} ETH</p>
+          <p><span style={{ fontWeight: 'bold' }}>Wallet Balance:</span> {balance} ETH</p>
         </div>
 
         <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
@@ -180,13 +151,13 @@ export default function AssessmentContractInteraction() {
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             padding: '1.5rem'
           }}>
-            <h2 style={{ color: '#2563EB', marginBottom: '1rem', fontSize: '1.5rem' }}>Deposit</h2>
+            <h2 style={{ color: '#2563EB', marginBottom: '1rem', fontSize: '1.5rem' }}>Add Funds</h2>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <input
                 type="number"
                 placeholder="Amount in ETH"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
+                value={addAmount}
+                onChange={(e) => setAddAmount(e.target.value)}
                 style={{
                   flex: 1,
                   padding: '0.5rem',
@@ -196,7 +167,7 @@ export default function AssessmentContractInteraction() {
                 }}
               />
               <button
-                onClick={handleDeposit}
+                onClick={handleAddFunds}
                 style={{
                   backgroundColor: '#2563EB',
                   color: 'white',
@@ -206,7 +177,7 @@ export default function AssessmentContractInteraction() {
                   cursor: 'pointer'
                 }}
               >
-                Deposit
+                Add Funds
               </button>
             </div>
           </div>
@@ -219,13 +190,13 @@ export default function AssessmentContractInteraction() {
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             padding: '1.5rem'
           }}>
-            <h2 style={{ color: '#2563EB', marginBottom: '1rem', fontSize: '1.5rem' }}>Withdraw</h2>
+            <h2 style={{ color: '#2563EB', marginBottom: '1rem', fontSize: '1.5rem' }}>Remove Funds</h2>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <input
                 type="number"
                 placeholder="Amount in ETH"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
+                value={removeAmount}
+                onChange={(e) => setRemoveAmount(e.target.value)}
                 style={{
                   flex: 1,
                   padding: '0.5rem',
@@ -235,7 +206,7 @@ export default function AssessmentContractInteraction() {
                 }}
               />
               <button
-                onClick={handleWithdraw}
+                onClick={handleRemoveFunds}
                 style={{
                   backgroundColor: '#2563EB',
                   color: 'white',
@@ -245,7 +216,7 @@ export default function AssessmentContractInteraction() {
                   cursor: 'pointer'
                 }}
               >
-                Withdraw
+                Remove Funds
               </button>
             </div>
           </div>
@@ -263,6 +234,7 @@ export default function AssessmentContractInteraction() {
               <tr>
                 <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>Type</th>
                 <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>Amount (ETH)</th>
+                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>Address</th>
                 <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>Timestamp</th>
               </tr>
             </thead>
@@ -271,6 +243,7 @@ export default function AssessmentContractInteraction() {
                 <tr key={index}>
                   <td style={{ padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>{tx.type}</td>
                   <td style={{ padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>{tx.amount}</td>
+                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>{tx.address}</td>
                   <td style={{ padding: '0.5rem', borderBottom: '1px solid #CBD5E0' }}>{tx.timestamp}</td>
                 </tr>
               ))}
