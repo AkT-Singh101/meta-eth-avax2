@@ -21,7 +21,7 @@ The Halloween Candy Exchange is a decentralized application (dApp) that allows u
 - **getTotalCandiesTaken**: Returns the total number of candies taken by users.
 - **giveCandy**: Allows users to add candies to the contract.
 - **takeCandy**: Allows users to remove candies from the contract.
-- 
+  
 ## Getting Started
 **Installation/Running this project**
 After cloning the github, you will want to do the following to get the code running on your computer.
