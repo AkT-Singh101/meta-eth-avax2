@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 contract DigitalWallet {
     address public immutable owner;
     uint256 private _balance;
-
     enum TransactionType { Deposit, Withdrawal }
 
     struct TransactionRecord {
@@ -14,7 +13,6 @@ contract DigitalWallet {
     }
 
     TransactionRecord[] private _transactionHistory;
-
     event FundsDeposited(address indexed depositor, uint256 amount);
     event FundsWithdrawn(address indexed recipient, uint256 amount);
 
@@ -50,15 +48,12 @@ contract DigitalWallet {
     function depositFunds() public payable {
         uint256 initialBalance = _balance;
         _balance += msg.value;
-
         assert(_balance == initialBalance + msg.value);
-
         _transactionHistory.push(TransactionRecord({
             amount: msg.value,
             txType: TransactionType.Deposit,
             timestamp: block.timestamp
         }));
-
         emit FundsDeposited(msg.sender, msg.value);
     }
 
@@ -72,12 +67,9 @@ contract DigitalWallet {
 
         uint256 initialBalance = _balance;
         _balance -= amount;
-
         (bool success, ) = owner.call{value: amount}("");
         require(success, "Transfer failed");
-
         assert(_balance == initialBalance - amount);
-
         _transactionHistory.push(TransactionRecord({
             amount: amount,
             txType: TransactionType.Withdrawal,
