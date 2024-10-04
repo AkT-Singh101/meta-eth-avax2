@@ -1,98 +1,89 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 
-contract Assessment {
-    address payable public owner;
-    uint256 public balance;
+contract DigitalWallet {
+    address public immutable owner;
+    uint256 private _balance;
 
-    // Struct to store details of each transaction
-    struct Transaction {
+    enum TransactionType { Deposit, Withdrawal }
+
+    struct TransactionRecord {
         uint256 amount;
-        string transactionType;  // "Deposit" or "Withdraw"
+        TransactionType txType;
         uint256 timestamp;
     }
 
-    // Array to store the transaction history
-    Transaction[] public transactions;
+    TransactionRecord[] private _transactionHistory;
 
-    event Deposit(uint256 amount);
-    event Withdraw(uint256 amount);
+    event FundsDeposited(address indexed depositor, uint256 amount);
+    event FundsWithdrawn(address indexed recipient, uint256 amount);
+
+    error UnauthorizedAccess(address caller);
+    error InsufficientFunds(uint256 available, uint256 requested);
 
     constructor() payable {
-        owner = payable(msg.sender);
-        balance = msg.value;  // Initialize with the amount of ether sent during deployment
+        owner = msg.sender;
+        _balance = msg.value;
     }
 
-    // View balance of the contract
-    function getBalance() public view returns (uint256) {
-    return address(this).balance;
-}
-
-    // View the number of transactions made
-    function getTransactionCount() public view returns (uint256) {
-        return transactions.length;
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert UnauthorizedAccess(msg.sender);
+        }
+        _;
     }
 
-    // View transaction details by index
-    function getTransaction(uint index) public view returns (uint256, string memory, uint256) {
-        require(index < transactions.length, "Invalid index");
-        Transaction memory txn = transactions[index];
-        return (txn.amount, txn.transactionType, txn.timestamp);
+    function currentBalance() public view returns (uint256) {
+        return _balance;
     }
 
-    // Deposit function
-    function deposit() public payable {
-        uint256 _previousBalance = balance;
+    function transactionCount() public view returns (uint256) {
+        return _transactionHistory.length;
+    }
 
-        // perform transaction
-        balance += msg.value;
+    function getTransactionDetails(uint256 index) public view returns (uint256, TransactionType, uint256) {
+        require(index < _transactionHistory.length, "Transaction index out of bounds");
+        TransactionRecord memory record = _transactionHistory[index];
+        return (record.amount, record.txType, record.timestamp);
+    }
 
-        // assert transaction completed successfully
-        assert(balance == _previousBalance + msg.value);
+    function depositFunds() public payable {
+        uint256 initialBalance = _balance;
+        _balance += msg.value;
 
-        // store transaction in history
-        transactions.push(Transaction({
+        assert(_balance == initialBalance + msg.value);
+
+        _transactionHistory.push(TransactionRecord({
             amount: msg.value,
-            transactionType: "Deposit",
+            txType: TransactionType.Deposit,
             timestamp: block.timestamp
         }));
 
-        // emit the event
-        emit Deposit(msg.value);
+        emit FundsDeposited(msg.sender, msg.value);
     }
 
-    // Custom error
-    error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
-
-    // Withdraw function
-    function withdraw(uint256 _withdrawAmount) public {
-        require(msg.sender == owner, "You are not the owner of this account");
-        uint256 _previousBalance = balance;
-
-        if (balance < _withdrawAmount) {
-            revert InsufficientBalance({
-                balance: balance,
-                withdrawAmount: _withdrawAmount
+    function withdrawFunds(uint256 amount) public onlyOwner {
+        if (_balance < amount) {
+            revert InsufficientFunds({
+                available: _balance,
+                requested: amount
             });
         }
 
-        // withdraw the given amount
-        balance -= _withdrawAmount;
+        uint256 initialBalance = _balance;
+        _balance -= amount;
 
-        // transfer the Ether to the owner
-        owner.transfer(_withdrawAmount);
+        (bool success, ) = owner.call{value: amount}("");
+        require(success, "Transfer failed");
 
-        // assert the balance is correct
-        assert(balance == (_previousBalance - _withdrawAmount));
+        assert(_balance == initialBalance - amount);
 
-        // store transaction in history
-        transactions.push(Transaction({
-            amount: _withdrawAmount,
-            transactionType: "Withdraw",
+        _transactionHistory.push(TransactionRecord({
+            amount: amount,
+            txType: TransactionType.Withdrawal,
             timestamp: block.timestamp
         }));
 
-        // emit the event
-        emit Withdraw(_withdrawAmount);
+        emit FundsWithdrawn(owner, amount);
     }
 }
