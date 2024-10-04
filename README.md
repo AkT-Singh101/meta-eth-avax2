@@ -11,11 +11,10 @@ The Digital Wallet Interaction allows users to deposit and withdraw Ether throug
 - **Real-time Updates**: The application updates the balance and transaction history in real-time.
 
 ## Smart Contract
-- **getBalance**: Returns the current balance of the contract.
-- **getTransactionCount**: Returns the total number of transactions.
-- **getTransaction**: Retrieves transaction details by index.
-- **deposit**: Allows users to deposit Ether into the contract.
-- **withdraw**: Allows the owner to withdraw Ether from the contract.
+- **checkBalance**: Returns the current balance of the contract.
+- **addFunds**: Allows the admin to add Ether to the contract.
+- **removeFunds**: Allows the admin to remove Ether from the contract.
+- **transferOwnership**: Allows the admin to transfer ownership of the contract to a new address.
 
 ## Getting Started
 **Installation/Running this project**
