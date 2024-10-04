@@ -1,4 +1,5 @@
 # Digital Wallet Interaction
+![image Alt](https://github.com/AkT-Singh101/meta-eth-avax2/blob/master/frontend.png?raw=true)
 
 ## Overview
 The Digital Wallet Interaction allows users to deposit and withdraw Ether through a smart contract deployed on the Ethereum blockchain. This decentralized application provides a user-friendly interface for interacting with the contract .
