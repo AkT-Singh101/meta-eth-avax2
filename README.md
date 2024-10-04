@@ -1,7 +1,7 @@
-# Ethereum ATM DApp
+# Digital Wallet Interaction
 
 ## Overview
-The Ethereum ATM DApp allows users to deposit and withdraw Ether through a smart contract deployed on the Ethereum blockchain. This decentralized application provides a user-friendly interface for interacting with the contract .
+The Digital Wallet Interaction allows users to deposit and withdraw Ether through a smart contract deployed on the Ethereum blockchain. This decentralized application provides a user-friendly interface for interacting with the contract .
 
 ## Features
 - **Deposit Ether**: Users can deposit Ether into the contract.
